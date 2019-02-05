@@ -21,8 +21,6 @@ function MainView() {
     this.mInteractiveObject = null;
 
     this.mStatus = null;
-    this.mInteractiveBoundInfo = null;
-
 };
 gEngine.Core.inheritPrototype(MainView, Scene);
 
@@ -174,6 +172,10 @@ MainView.prototype.update = function () {
     this._updateStatus(boundXForm.getXPos(), boundXForm.getYPos(), boundXForm.getWidth(), boundXForm.getHeight())
 
 };
+
+MainView.prototype.getInteractiveBoundObj = function () {
+    return this.mInteractiveObject;
+}
 
 
 /**
