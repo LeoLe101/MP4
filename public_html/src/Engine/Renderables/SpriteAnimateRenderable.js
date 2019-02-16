@@ -97,6 +97,23 @@ SpriteAnimateRenderable.prototype.setSpriteSequence = function (
     this._initAnimation();
 };
 
+SpriteAnimateRenderable.prototype.setSpriteSequenceUV = function (
+    topUV,   // offset from top-left
+    leftUV, // offset from top-left
+    elmWidthInUV,
+    elmHeightInUV,
+    numElements,      // number of elements in sequence
+    wPaddingInUV,  // left/right padding
+) {
+    this.mNumElems = numElements;   // number of elements in animation
+    this.mFirstElmLeft = leftUV;
+    this.mElmTop = topUV;
+    this.mElmWidth = elmWidthInUV;
+    this.mElmHeight = elmHeightInUV;
+    this.mWidthPadding = wPaddingInUV;
+    this._initAnimation();
+};
+
 SpriteAnimateRenderable.prototype.setAnimationSpeed = function (
     tickInterval   // number of update calls before advancing the animation
 ) {

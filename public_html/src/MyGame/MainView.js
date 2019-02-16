@@ -14,14 +14,24 @@ function MainView() {
 
     // The camera to view the scene
     this.mCamera = null;
+    this.mAnimationView = null;
+    this.mZoomedView = null;
 
     // Support Objects: SpriteSource and InteractionBound
     this.mSpriteSource = null;
     this.mOption = 1; // this is for the sprite draw function (switching between different image/sprite)
     this.mInteractiveObject = null;
+    this.mInteractiveObjArray = [];
 
     this.mStatus = null;
-};
+
+    this.mSAWidth = 204;
+    this.mSAHeight = 164;
+    this.mSATopPx = 350;
+    this.mSALeftPx = 408;
+    this.mNumElm = 3;
+}
+;
 gEngine.Core.inheritPrototype(MainView, Scene);
 
 
@@ -47,21 +57,28 @@ MainView.prototype.unloadScene = function () {
 };
 
 MainView.prototype.initialize = function () {
-    // Step A: set up the cameras
+    // Main Camera
     this.mCamera = new Camera(
-        vec2.fromValues(60, 40),   // position of the camera
-        150,                       // width of camera
-        [260, 0, 600, 700]           // viewport (orgX, orgY, width, height)
-    );
+            vec2.fromValues(60, 40), // position of the camera
+            150, // width of camera
+            [260, 0, 600, 700]           // viewport (orgX, orgY, width, height)
+            );
     this.mCamera.setBackgroundColor([0.8, 0.8, 0.8, 1]);
 
+    // 2 Objects
     this.mSpriteSource = new SpriteSource();
     this.mSpriteSource.initialize();
 
     this.mInteractiveObject = new InteractiveObject();
-    this.mInteractiveObject.initialize();
+    this.mInteractiveObject.initialize(1, null, null, null, null);
 
-    this.mStatus = new FontRenderable("Status: Bound Pos=(0.00  0.00) -- Size=(15.00  15.00)");
+    // Difference views
+    // Init Animation View
+    this.mAnimationView = new AnimationView(this.mInteractiveObject);
+    this.mZoomedView = new ZoomedView(this.mInteractiveObject);
+
+    // Status Bar
+    this.mStatus = new FontRenderable("");
     this.mStatus.setFont(this.kFontCon32);
     this.mStatus.setColor([0, 0, 0, 1]);
     this.mStatus.getXform().setPosition(-5, -40);
@@ -70,6 +87,7 @@ MainView.prototype.initialize = function () {
 
 
 MainView.prototype.draw = function () {
+
     // Step A: clear the canvas
     gEngine.Core.clearCanvas([0.9, 0.9, 0.9, 1.0]); // clear to light gray
 
@@ -78,66 +96,152 @@ MainView.prototype.draw = function () {
 
     // Step  C: Draw everything
     this.mSpriteSource.draw(this.mOption, this.mCamera.getVPMatrix());
-    this.mInteractiveObject.draw(this.mCamera.getVPMatrix());
-
+    this.mInteractiveObject.draw(1, this.mCamera.getVPMatrix());
+    // Draw the Animation Frame if any
+    for (var i = 0; i < this.mInteractiveObjArray.length; i++) {
+        console.log("interactive obj array", this.mInteractiveObjArray);
+        this.mInteractiveObjArray[i].draw(2, this.mCamera.getVPMatrix());
+    }
+    // Draw status
     this.mStatus.draw(this.mCamera.getVPMatrix());
+
+    this.mAnimationView.draw(this.mOption);
+    var topCam = this.mZoomedView.drawTop();
+    this.mSpriteSource.draw(this.mOption, topCam.getVPMatrix());
+    this.mInteractiveObject.draw(1, topCam.getVPMatrix());
+
+    var botCam = this.mZoomedView.drawBot();
+    this.mSpriteSource.draw(this.mOption, botCam.getVPMatrix());
+    this.mInteractiveObject.draw(1, botCam.getVPMatrix());
+
+    var leftCam = this.mZoomedView.drawLeft();
+    this.mSpriteSource.draw(this.mOption, leftCam.getVPMatrix());
+    this.mInteractiveObject.draw(1, leftCam.getVPMatrix());
+
+    var rightCam = this.mZoomedView.drawRight();
+    this.mSpriteSource.draw(this.mOption, rightCam.getVPMatrix());
+    this.mInteractiveObject.draw(1, rightCam.getVPMatrix());
 };
 
 MainView.prototype.update = function () {
     var deltaX = 0.5;
+    var moveSprite = 3.3;
     var boundXForm = this.mInteractiveObject.getBoundXForm();
+    var boundLeftSqPos = this.mInteractiveObject.getBoundLeftSqPos();
+    var boundRightSqPos = this.mInteractiveObject.getBoundRightSqPos();
+    var boundTopSqPos = this.mInteractiveObject.getBoundTopSqPos();
+    var boundBotSqPos = this.mInteractiveObject.getBoundBotSqPos();
+    var spriteLeftSqPos = this.mSpriteSource.getSpriteLeftSqPos();
+    var spriteRightSqPos = this.mSpriteSource.getSpriteRightSqPos();
+    var spriteTopSqPos = this.mSpriteSource.getSpriteTopSqPos();
+    var spriteBotSqPos = this.mSpriteSource.getSpriteBotSqPos();
+
 
     // -------------------------------- SUPPORT ARROW KEYS -------------------------------------------------
     if (gEngine.Input.isKeyPressed(gEngine.Input.keys.Left)) {
-        if ((this.mInteractiveObject.getBoundLeftSqPos() >= this.mSpriteSource.getSpriteLeftSqPos())
-            && (this.mInteractiveObject.getBoundRightSqPos() < this.mSpriteSource.getSpriteRightSqPos())) {
+        if ((boundLeftSqPos >= spriteLeftSqPos)
+                && (boundRightSqPos < spriteRightSqPos)) {
             this.mInteractiveObject.setBoundWidth(deltaX);
+            this.mZoomedView.scaleCam(this.mInteractiveObject);
+
+            this.mSAWidth += moveSprite;
+            this.mAnimationView.setSprSequence(this.mOption,
+                    this.mSATopPx, this.mSALeftPx, // top of image, left of image (in PIXEL)
+                    this.mSAWidth, this.mSAHeight, // width x height in pixels
+                    this.mNumElm, // number of elements in this sequence
+                    0);                   // horizontal padding in between
         }
     }
 
     if (gEngine.Input.isKeyPressed(gEngine.Input.keys.Up)) {
-        if ((this.mInteractiveObject.getBoundTopSqPos() <= this.mSpriteSource.getSpriteTopSqPos())
-            && (this.mInteractiveObject.getBoundBotSqPos() > this.mSpriteSource.getSpriteBotSqPos())) {
+        if ((boundTopSqPos <= spriteTopSqPos)
+                && (boundBotSqPos > spriteBotSqPos)) {
             this.mInteractiveObject.setBoundHeight(deltaX);
+
+            this.mSAHeight += moveSprite;
+            this.mAnimationView.setSprSequence(this.mOption,
+                    this.mSATopPx, this.mSALeftPx, // top of image, left of image (in PIXEL)
+                    this.mSAWidth, this.mSAHeight, // width x height in pixels
+                    this.mNumElm, // number of elements in this sequence
+                    0);                   // horizontal padding in between
         }
     }
 
     if (gEngine.Input.isKeyPressed(gEngine.Input.keys.Right)) {
-        if ((this.mInteractiveObject.getBoundLeftSqPos() > this.mSpriteSource.getSpriteLeftSqPos())
-            && (this.mInteractiveObject.getBoundRightSqPos() <= this.mSpriteSource.getSpriteRightSqPos())) {
+        if ((boundLeftSqPos > spriteLeftSqPos)
+                && (boundRightSqPos <= spriteRightSqPos)) {
             this.mInteractiveObject.setBoundWidth(-deltaX);
+            this.mZoomedView.scaleCam(this.mInteractiveObject);
+
+            this.mSAWidth -= moveSprite;
+            this.mAnimationView.setSprSequence(this.mOption,
+                    this.mSATopPx, this.mSALeftPx, // top of image, left of image (in PIXEL)
+                    this.mSAWidth, this.mSAHeight, // width x height in pixels
+                    this.mNumElm, // number of elements in this sequence
+                    0);                   // horizontal padding in between
         }
     }
 
     if (gEngine.Input.isKeyPressed(gEngine.Input.keys.Down)) {
-        if ((this.mInteractiveObject.getBoundTopSqPos() < this.mSpriteSource.getSpriteTopSqPos())
-            && (this.mInteractiveObject.getBoundBotSqPos() >= this.mSpriteSource.getSpriteBotSqPos())) {
+        if ((boundTopSqPos < spriteTopSqPos)
+                && (boundBotSqPos >= spriteBotSqPos)) {
             this.mInteractiveObject.setBoundHeight(-deltaX);
+
+            this.mSAHeight -= moveSprite;
+            this.mAnimationView.setSprSequence(this.mOption,
+                    this.mSATopPx, this.mSALeftPx, // top of image, left of image (in PIXEL)
+                    this.mSAWidth, this.mSAHeight, // width x height in pixels
+                    this.mNumElm, // number of elements in this sequence
+                    0);                   // horizontal padding in between
         }
     }
 
     // -------------------------------- SUPPORT W-A-S-D KEYS -------------------------------------------------
     if (gEngine.Input.isKeyPressed(gEngine.Input.keys.W)) {
-        if (this.mInteractiveObject.getBoundTopSqPos() < this.mSpriteSource.getSpriteTopSqPos()) {
+        if (boundTopSqPos < spriteTopSqPos) {
+            this.mSATopPx += moveSprite;
             this.mInteractiveObject.incBoundYPos(deltaX);
+            this.mAnimationView.setSprSequence(this.mOption,
+                    this.mSATopPx, this.mSALeftPx, // top of image, left of image (in PIXEL)
+                    this.mSAWidth, this.mSAHeight, // width x height in pixels
+                    this.mNumElm, // number of elements in this sequence
+                    0);                   // horizontal padding in between
         }
     }
 
     if (gEngine.Input.isKeyPressed(gEngine.Input.keys.A)) {
-        if (this.mInteractiveObject.getBoundLeftSqPos() > this.mSpriteSource.getSpriteLeftSqPos()) {
+        if (boundLeftSqPos > spriteLeftSqPos) {
+            this.mSALeftPx -= moveSprite;
             this.mInteractiveObject.incBoundXPos(-deltaX);
+            this.mAnimationView.setSprSequence(this.mOption,
+                    this.mSATopPx, this.mSALeftPx, // top of image, left of image (in PIXEL)
+                    this.mSAWidth, this.mSAHeight, // width x height in pixels
+                    this.mNumElm, // number of elements in this sequence
+                    0);                   // horizontal padding in between
         }
     }
 
     if (gEngine.Input.isKeyPressed(gEngine.Input.keys.S)) {
-        if (this.mInteractiveObject.getBoundBotSqPos() > this.mSpriteSource.getSpriteBotSqPos()) {
+        if (boundBotSqPos > spriteBotSqPos) {
+            this.mSATopPx -= moveSprite;
             this.mInteractiveObject.incBoundYPos(-deltaX);
+            this.mAnimationView.setSprSequence(this.mOption,
+                    this.mSATopPx, this.mSALeftPx, // top of image, left of image (in PIXEL)
+                    this.mSAWidth, this.mSAHeight, // width x height in pixels
+                    this.mNumElm, // number of elements in this sequence
+                    0);                   // horizontal padding in between
         }
     }
 
     if (gEngine.Input.isKeyPressed(gEngine.Input.keys.D)) {
-        if (this.mInteractiveObject.getBoundRightSqPos() < this.mSpriteSource.getSpriteRightSqPos()) {
+        if (boundRightSqPos < spriteRightSqPos) {
+            this.mSALeftPx += moveSprite;
             this.mInteractiveObject.incBoundXPos(deltaX);
+            this.mAnimationView.setSprSequence(this.mOption,
+                    this.mSATopPx, this.mSALeftPx, // top of image, left of image (in PIXEL)
+                    this.mSAWidth, this.mSAHeight, // width x height in pixels
+                    this.mNumElm, // number of elements in this sequence
+                    0);                   // horizontal padding in between
         }
     }
 
@@ -150,32 +254,45 @@ MainView.prototype.update = function () {
         this.mOption = 1;
     }
 
-    // -------------------------------- SUPPORT SPACE AND Q KEYS -------------------------------------------------
+    // -------------------------------- SUPPORT SPACE, K AND Q KEYS -------------------------------------------------
     if (gEngine.Input.isKeyPressed(gEngine.Input.keys.Space)) {
-        if ((this.mInteractiveObject.getBoundTopSqPos() < this.mSpriteSource.getSpriteTopSqPos())
-            && (this.mInteractiveObject.getBoundBotSqPos() > this.mSpriteSource.getSpriteBotSqPos())
-            && (this.mInteractiveObject.getBoundLeftSqPos() > this.mSpriteSource.getSpriteLeftSqPos())
-            && (this.mInteractiveObject.getBoundRightSqPos() <= this.mSpriteSource.getSpriteRightSqPos())) {
-            this.mInteractiveObject.setBoundHeight(-deltaX);
+        if ((boundTopSqPos < spriteTopSqPos)
+                && (boundBotSqPos > spriteBotSqPos)
+                && (boundLeftSqPos > spriteLeftSqPos)
+                && (boundRightSqPos <= spriteRightSqPos)) {
+            this.mInteractiveObject.incBoundSize(deltaX * 10 / 100);
+
+            this.mSAWidth += (moveSprite  * 10 / 100);
+            this.mSAHeight += (moveSprite  * 10 / 100);
+            this.mAnimationView.setSprSequence(this.mOption,
+                    this.mSATopPx, this.mSALeftPx, // top of image, left of image (in PIXEL)
+                    this.mSAWidth, this.mSAHeight, // width x height in pixels
+                    this.mNumElm, // number of elements in this sequence
+                    0);                   // horizontal padding in between
         }
     }
 
-    if (gEngine.Input.isKeyPressed(gEngine.Input.keys.Q)) {
-        if ((this.mInteractiveObject.getBoundTopSqPos() < this.mSpriteSource.getSpriteTopSqPos())
-            && (this.mInteractiveObject.getBoundBotSqPos() > this.mSpriteSource.getSpriteBotSqPos())
-            && (this.mInteractiveObject.getBoundLeftSqPos() > this.mSpriteSource.getSpriteLeftSqPos())
-            && (this.mInteractiveObject.getBoundRightSqPos() <= this.mSpriteSource.getSpriteRightSqPos())) {
-            this.mInteractiveObject.setBoundHeight(-deltaX);
+    if (gEngine.Input.isKeyClicked(gEngine.Input.keys.Q)) {
+        if ((boundTopSqPos < spriteTopSqPos)
+                && (boundBotSqPos > spriteBotSqPos)
+                && (boundLeftSqPos > spriteLeftSqPos)
+                && (boundRightSqPos <= spriteRightSqPos)) {
+            const interactiveObj = new InteractiveObject();
+            interactiveObj.initialize(2, boundRightSqPos, boundXForm.getHeight(), boundXForm.getWidth(), boundXForm.getHeight());
+            this.mInteractiveObjArray.push(interactiveObj);
+        }
+    }
+
+    if (gEngine.Input.isKeyClicked(gEngine.Input.keys.K)) {
+        if (this.mInteractiveObjArray.length > 0) {
+            this.mInteractiveObjArray.splice(0, 1);
         }
     }
 
     this._updateStatus(boundXForm.getXPos(), boundXForm.getYPos(), boundXForm.getWidth(), boundXForm.getHeight())
-
+    this.mAnimationView.updateAnimation(this.mOption);
+    this.mZoomedView.updateCamPos(this.mInteractiveObject);
 };
-
-MainView.prototype.getInteractiveBoundObj = function () {
-    return this.mInteractiveObject;
-}
 
 
 /**
@@ -183,5 +300,5 @@ MainView.prototype.getInteractiveBoundObj = function () {
  */
 MainView.prototype._updateStatus = function (boundXPos, boundYPos, boundXSize, boundYSize) {
     this.mStatus.setText("Status: Bound Pos=(" + boundXPos + "  " + boundYPos
-        + ") -- Size=(" + boundXSize + "  " + boundYSize + ")");
+            + ") -- Size=(" + boundXSize + "  " + boundYSize + ")");
 }

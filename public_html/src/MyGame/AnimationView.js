@@ -5,53 +5,83 @@
 "use strict";
 
 // Constructor
-function AnimationView() {
+function AnimationView(interactObj) {
+    // textures: 
+    this.kFontImage = "assets/Consolas-72.png";
+    this.kMinionSprite = "assets/minion_sprite.png";
+
     // The camera to view the scene
     this.mCamera = null;
-
-    // Support Objects: SpriteSource and InteractionBound
-    this.mSpriteSource = null;
-    this.mOption = 1; // this is for the sprite draw function (switching between different image/sprite)
-    this.mInteractiveObject = null;
-
-    this.mStatus = null;
-    this.mInteractiveBoundInfo = null;
-
+    this.mMinion = null;
+    this.mFont = null;
+    this.mInteractObj = interactObj;
+    this._initialize();
 };
 
-AnimationView.prototype.initialize = function () {
+AnimationView.prototype._initialize = function () {
+    var uvCoordArray = this.mInteractObj.getBound().getElementUVCoordinateArray()
+    console.log("UVCoord", uvCoordArray);
     // Step A: set up the cameras
     this.mCamera = new Camera(
         vec2.fromValues(60, 40),   // position of the camera
-        150,                       // width of camera
-        [260, 0, 600, 700]           // viewport (orgX, orgY, width, height)
+        150,                        // width of camera
+        [3, 445, 255, 255]         // viewport (orgX, orgY, width, height)
     );
-    this.mCamera.setBackgroundColor([0.8, 0.8, 0.8, 1]);
+    this.mCamera.setBackgroundColor([0, 0.6, 0.7, 0.5]);
 
-    this.mSpriteSource = new SpriteSource();
-    this.mSpriteSource.initialize();
+    this.mMinion = new SpriteAnimateRenderable(this.kMinionSprite);
+    this.mMinion.setColor([1, 1, 1, 0]);
+    this.mMinion.getXform().setPosition(60, 40); // DON'T CHANGE THESE VALS!!!!
+    this.mMinion.getXform().setSize(140, 140);     // DON'T CHANGE THESE VALS!!!!
+    this.mMinion.setSpriteSequence(350, 408, // top of image, left of image
+        204, 164,                          // width x height in pixels
+        5,                                 // number of elements in this sequence
+        0);                                // horizontal padding in between
+    this.mMinion.setAnimationType(SpriteAnimateRenderable.eAnimationType.eAnimateSwing);
+    this.mMinion.setAnimationSpeed(50);
 
-    this.mInteractiveObject = new InteractiveObject();
-    this.mInteractiveObject.initialize();
-
-    this.mStatus = new FontRenderable("Status: Bound Pos=(0.00  0.00) -- Size=(15.00  15.00)");
-    this.mStatus.setFont(this.kFontCon32);
-    this.mStatus.setColor([0, 0, 0, 1]);
-    this.mStatus.getXform().setPosition(-5, -40);
-    this.mStatus.setTextHeight(4);
+    this.mFont = new SpriteAnimateRenderable(this.kFontImage);
+    this.mFont.setColor([1, 1, 1, 0]);
+    this.mFont.getXform().setPosition(60, 40);
+    this.mFont.getXform().setSize(this.mCamera.getWCWidth(), this.mCamera.getWCWidth());
+    this.mFont.setSpriteSequence(350, 200,    // first element pixel position: top-left 512 is top of image, 0 is left of image
+        128, 128,                           // widthxheight in pixels
+        5,                                  // number of elements in this sequence
+        0);                                 // horizontal padding in between
+    this.mFont.setAnimationType(SpriteAnimateRenderable.eAnimationType.eAnimateSwing);
+    this.mFont.setAnimationSpeed(50);
 };
 
+AnimationView.prototype.updateAnimation = function (option) {
+    if (option === 1) {
+        this.mMinion.updateAnimation();
+    } else {
+        this.mFont.updateAnimation();
+    }
+}
 
-AnimationView.prototype.draw = function () {
-    // Step A: clear the canvas
-    gEngine.Core.clearCanvas([0.9, 0.9, 0.9, 1.0]); // clear to light gray
+AnimationView.prototype.setSprSequence = function (option, topPx, leftPx, wPx, hPx, numElm, hPadding) {
+    if (option === 1) {
+        this.mMinion.setSpriteSequence(topPx, leftPx, wPx, hPx, numElm, hPadding);                                 
+    } else {
+        this.mFont.setSpriteSequence(topPx, leftPx, wPx, hPx, numElm, hPadding);      
+    }
+}
 
-    // Step  B: Activate the drawing Camera
+AnimationView.prototype.setSprSequenceUV = function (option, topUV, leftUV, wUV, hUV, numElm, hPadding) {
+    if (option === 1) {
+        this.mMinion.setSpriteSequenceUV(topUV, leftUV, wUV, hUV, numElm, hPadding);                                 
+    } else {
+        this.mFont.setSpriteSequenceUV(topUV, leftUV, wUV, hUV, numElm, hPadding);      
+    }
+}
+
+AnimationView.prototype.draw = function (option) {
     this.mCamera.setupViewProjection();
 
-    // Step  C: Draw everything
-    this.mSpriteSource.draw(this.mOption, this.mCamera.getVPMatrix());
-    this.mInteractiveObject.draw(this.mCamera.getVPMatrix());
-
-    this.mStatus.draw(this.mCamera.getVPMatrix());
+    if (option === 1) {
+        this.mMinion.draw(this.mCamera.getVPMatrix());
+    } else {
+        this.mFont.draw(this.mCamera.getVPMatrix());
+    }
 };

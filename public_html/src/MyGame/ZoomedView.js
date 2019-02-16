@@ -5,41 +5,96 @@
 "use strict";
 
 // Constructor
-function ZoomedView() {
-   
+function ZoomedView(interactiveObj) {
+
     // The camera to view the scene
-    this.mCamera11 = null;
-    this.mCamera12 = null;
-    this.mCamera13 = null;
-    this.mCamera14 = null;
+    this.mCameraTop = null;
+    this.mCameraLeft = null;
+    this.mCameraRight = null;
+    this.mCameraBot = null;
 
-    this.mInteractiveObject = null;
+    this.mInteractiveObject = interactiveObj;
+    this.mBoundWidth = interactiveObj.getBoundXForm().getWidth() / 2;
+    var sqArr = interactiveObj.getAllSqXForm();
+    this.mTopSqPos = sqArr[0];
+    this.mBotSqPos = sqArr[1];
+    this.mLeftSqPos = sqArr[2];
+    this.mRightSqPos = sqArr[3];
+    this._initialize();
 };
 
 
-ZoomedView.prototype.initialize = function () {
+ZoomedView.prototype._initialize = function () {
     // Step A: set up the cameras
-    this.mCamera1 = new Camera(
-        vec2.fromValues(60, 40),   // position of the camera
-        150,                       // width of camera
-        [260, 0, 600, 700]           // viewport (orgX, orgY, width, height)
+    this.mCameraTop = new Camera(
+        vec2.fromValues(this.mTopSqPos.getXPos(), this.mTopSqPos.getYPos()),
+        this.mBoundWidth,
+        [63.5, 297, 125, 145]
     );
-    this.mCamera1.setBackgroundColor([0.8, 0.8, 0.8, 1]);
+    this.mCameraTop.setBackgroundColor([1, 1, 1, 1]);
 
-    this.mInteractiveObject = MainView.getInteractiveBoundObj();
+    this.mCameraLeft = new Camera(
+        vec2.fromValues(this.mLeftSqPos.getXPos(), this.mLeftSqPos.getYPos()),
+        this.mBoundWidth,
+        [3, 150, 125, 145]
+    );
+    this.mCameraLeft.setBackgroundColor([1, 1, 1, 1]);
+
+    this.mCameraRight = new Camera(
+        vec2.fromValues(this.mRightSqPos.getXPos(), this.mRightSqPos.getYPos()),
+        this.mBoundWidth,
+        [131, 150, 125, 145]
+    );
+    this.mCameraRight.setBackgroundColor([1, 1, 1, 1]);
+
+    this.mCameraBot = new Camera(
+        vec2.fromValues(this.mBotSqPos.getXPos(), this.mBotSqPos.getYPos()),
+        this.mBoundWidth,
+        [63.5, 3, 125, 145]
+    );
+    this.mCameraBot.setBackgroundColor([1, 1, 1, 1]);
+};
+
+//---------------------------------------DRAW------------------------------------
+ZoomedView.prototype.drawTop = function () {
+    this.mCameraTop.setupViewProjection();
+    return this.mCameraTop;
+};
+
+ZoomedView.prototype.drawBot = function () {
+    this.mCameraBot.setupViewProjection();
+    return this.mCameraBot;
+};
+
+ZoomedView.prototype.drawLeft = function () {
+    this.mCameraLeft.setupViewProjection();
+    return this.mCameraLeft;
+
+};
+
+ZoomedView.prototype.drawRight = function () {
+    this.mCameraRight.setupViewProjection();
+    return this.mCameraRight;
 };
 
 
-ZoomedView.prototype.draw = function () {
-    // Step A: clear the canvas
-    gEngine.Core.clearCanvas([0.9, 0.9, 0.9, 1.0]); // clear to light gray
+//---------------------------------------UPDATE------------------------------------
+ZoomedView.prototype.updateCamPos = function (interactiveObj) {
+    var sqArr = interactiveObj.getAllSqXForm();
+    this.mTopSqPos = sqArr[0];
+    this.mBotSqPos = sqArr[1];
+    this.mLeftSqPos = sqArr[2];
+    this.mRightSqPos = sqArr[3];
+    this.mCameraTop.setWCCenter(this.mTopSqPos.getXPos(), this.mTopSqPos.getYPos());
+    this.mCameraRight.setWCCenter(this.mRightSqPos.getXPos(), this.mRightSqPos.getYPos());
+    this.mCameraBot.setWCCenter(this.mBotSqPos.getXPos(), this.mBotSqPos.getYPos());
+    this.mCameraLeft.setWCCenter(this.mLeftSqPos.getXPos(), this.mLeftSqPos.getYPos());
+};
 
-    // Step  B: Activate the drawing Camera
-    this.mCamera1.setupViewProjection();
-
-    // Step  C: Draw everything
-    this.mSpriteSource.draw(this.mOption, this.mCamera1.getVPMatrix());
-    this.mInteractiveObject.draw(this.mCamera1.getVPMatrix());
-
-    this.mStatus.draw(this.mCamera1.getVPMatrix());
+ZoomedView.prototype.scaleCam = function (interactiveObj) {
+    this.mBoundWidth = interactiveObj.getBoundXForm().getWidth() / 2;
+    this.mCameraTop.setWCWidth(this.mBoundWidth);
+    this.mCameraBot.setWCWidth(this.mBoundWidth);
+    this.mCameraRight.setWCWidth(this.mBoundWidth);
+    this.mCameraLeft.setWCWidth(this.mBoundWidth);
 };

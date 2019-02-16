@@ -30,8 +30,7 @@ function SpriteSource() {
  */
 SpriteSource.prototype.draw = function (option, vpMatrix) {
 
-
-    if (option == 1) {
+    if (option === 1) {
         var spriteXFrom = this.mMinionSprite.getXform();
         this._setSpriteCornerSqPos(spriteXFrom, spriteXFrom.getXPos(), spriteXFrom.getYPos());
         this._setSpriteBorder(spriteXFrom, spriteXFrom.getXPos(), spriteXFrom.getYPos());
@@ -68,18 +67,6 @@ SpriteSource.prototype.initialize = function () {
     this._initLineBorder();
 }
 
-SpriteSource.prototype.initialize = function () {
-    // Init Sprite
-    this._initSprite();
-    // Init Font Image
-    this._initImg();
-    // Init 4 corner square
-    this._initCornorSq();
-    // Init 4 border
-    this._initLineBorder();
-}
-
-
 SpriteSource.prototype.getSpriteTopSqPos = function () {
     return this.mTopLeftSq.getXform().getYPos();
 }
@@ -97,6 +84,22 @@ SpriteSource.prototype.getSpriteLeftSqPos = function () {
 SpriteSource.prototype.getSpriteRightSqPos = function () {
     return this.mBotRightSq.getXform().getXPos();
 }
+
+SpriteSource.prototype.getSpriteXForm = function (option) {
+    if (option === 1) {
+        return this.mMinionSprite.getXform();
+    } else {
+        return this.mFontImage.getXform();
+    }
+}
+
+SpriteSource.prototype.getSpriteUV = function(option) {
+    if (option === 1) {
+        return this.mMinionSprite.getElementUVCoordinateArray();
+    } else {
+        return this.mFontImage.getElementUVCoordinateArray();
+    }
+}
 //--- end of Public Methods
 
 
@@ -109,14 +112,14 @@ SpriteSource.prototype.getSpriteRightSqPos = function () {
 SpriteSource.prototype._initSprite = function () {
     this.mMinionSprite = new SpriteRenderable(this.kMinionSprite);
     this.mMinionSprite.setColor([1, 1, 1, 0]);
-    this.mMinionSprite.getXform().setPosition(60, 50);
+    this.mMinionSprite.getXform().setPosition(60, 40);
     this.mMinionSprite.getXform().setSize(140, 80);
 }
 
 SpriteSource.prototype._initImg = function () {
     this.mFontImage = new SpriteRenderable(this.kFontImage);
     this.mFontImage.setColor([1, 1, 1, 0]);
-    this.mFontImage.getXform().setPosition(60, 50);
+    this.mFontImage.getXform().setPosition(60, 40);
     this.mFontImage.getXform().setSize(130, 130);
 }
 
